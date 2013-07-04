@@ -6,22 +6,18 @@ require 'time'
 # within these files.
 # The Csv class provides only string objects. If you want conversions to other
 # types you have to do it yourself.
-#
-# You can pass options to the underlying CSV parse operation, via the
-# :csv_options option.
-#
 
 class Roo::Csv < Roo::GenericSpreadsheet
-  def initialize(filename, options = {})
+  def initialize(filename, col_sep=',' , packed=nil, file_warning=:error, tmpdir=nil)
     @filename = filename
-    @options = options
-    @cell = {}
-    @cell_type = {}
-    @cells_read = {}
-    @first_row = {}
-    @last_row = {}
-    @first_column = {}
-    @last_column = {}
+    @col_sep = col_sep
+    @cell = Hash.new
+    @cell_type = Hash.new
+    @cells_read = Hash.new
+    @first_row = Hash.new
+    @last_row = Hash.new
+    @first_column = Hash.new
+    @last_column = Hash.new
   end
 
   attr_reader :filename
@@ -50,10 +46,6 @@ class Roo::Csv < Roo::GenericSpreadsheet
     value
   end
 
-  def csv_options
-    @options[:csv_options] || {}
-  end
-
   private
 
   TYPE_MAP = {
@@ -74,7 +66,7 @@ class Roo::Csv < Roo::GenericSpreadsheet
           uri?(filename) ?
             open_from_uri(filename, tmpdir) :
             filename
-        ) { |f| f.read }
+        ) { |f| f.read.encode('UTF-8', 'binary', :invalid => :replace, :undef => :replace, :replace => '') }
       end
   end
 
@@ -87,7 +79,7 @@ class Roo::Csv < Roo::GenericSpreadsheet
     @first_column[sheet] = 1
     @last_column[sheet] = 1
     rownum = 1
-    CSV.parse data, csv_options do |row|
+    CSV.parse(data, :col_sep => @col_sep) do |row|
       row.each_with_index do |elem,i|
         @cell[[rownum,i+1]] = cell_postprocessing rownum,i+1, elem
         @cell_type[[rownum,i+1]] = celltype_class @cell[[rownum,i+1]]
